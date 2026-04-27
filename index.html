@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tarot Reading Request</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Noto+Serif+KR:wght@300;400;500;600&family=Inter:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f8f6f1;
+    --bg-card: #fffefa;
+    --text: #3a3632;
+    --text-muted: #8a8480;
+    --accent: #b8a99a;
+    --accent-hover: #a0907e;
+    --accent-light: #e8e2da;
+    --border: #e0dbd4;
+    --gold: #c4a97d;
+    --gold-light: #f0e6d3;
+    --shadow: rgba(58, 54, 50, 0.06);
+    --font-display: 'Cormorant Garamond', 'Noto Serif KR', serif;
+    --font-sans: 'Inter', -apple-system, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-display);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Stars background */
+  .stars {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+  .star {
+    position: absolute;
+    width: 2px; height: 2px;
+    background: var(--gold);
+    border-radius: 50%;
+    opacity: 0;
+    animation: twinkle var(--dur) ease-in-out infinite;
+    animation-delay: var(--delay);
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0; }
+    50% { opacity: var(--max-opacity); }
+  }
+
+  /* Layout */
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* Language toggle */
+  .lang-toggle {
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 48px;
+  }
+  .lang-btn {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 8px 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  .lang-btn:first-child { border-radius: 20px 0 0 20px; }
+  .lang-btn:last-child { border-radius: 0 20px 20px 0; border-left: none; }
+  .lang-btn.active {
+    background: var(--text);
+    color: var(--bg);
+    border-color: var(--text);
+  }
+  .lang-btn:not(.active):hover {
+    color: var(--text);
+    border-color: var(--accent);
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 56px;
+    animation: fadeUp 1s ease;
+  }
+  .moon {
+    font-size: 32px;
+    margin-bottom: 20px;
+    display: block;
+    animation: float 6s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  .header h1 {
+    font-size: 32px;
+    font-weight: 300;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+    line-height: 1.3;
+    white-space: pre-line;
+  }
+  .header p {
+    font-size: 16px;
+    font-weight: 300;
+    color: var(--text-muted);
+    line-height: 1.7;
+    max-width: 380px;
+    margin: 0 auto;
+    white-space: pre-line;
+  }
+
+  /* Divider */
+  .divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin: 40px 0;
+    color: var(--accent);
+    font-size: 10px;
+    letter-spacing: 3px;
+  }
+  .divider::before, .divider::after {
+    content: '';
+    height: 1px;
+    width: 60px;
+    background: linear-gradient(to right, transparent, var(--border), transparent);
+  }
+
+  /* Form card */
+  .form-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px 32px;
+    box-shadow: 0 4px 24px var(--shadow);
+  }
+
+  /* Steps */
+  .step {
+    display: none;
+    animation: fadeUp 0.6s ease;
+  }
+  .step.active { display: block; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Progress */
+  .progress {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 36px;
+  }
+  .progress-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent-light);
+    transition: all 0.4s ease;
+  }
+  .progress-dot.active {
+    background: var(--gold);
+    box-shadow: 0 0 8px rgba(196, 169, 125, 0.3);
+  }
+  .progress-dot.done {
+    background: var(--accent);
+  }
+
+  /* Step header */
+  .step-label {
+    font-family: var(--font-sans);
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  .step-question {
+    font-size: 22px;
+    font-weight: 400;
+    text-align: center;
+    line-height: 1.5;
+    margin-bottom: 28px;
+  }
+
+  /* Choice buttons */
+  .choices {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .choice {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 400;
+    padding: 16px 20px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .choice::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--gold-light);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 0;
+  }
+  .choice:hover::before { opacity: 1; }
+  .choice:hover {
+    border-color: var(--gold);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 12px var(--shadow);
+  }
+  .choice.selected {
+    border-color: var(--gold);
+    background: var(--gold-light);
+  }
+  .choice span { position: relative; z-index: 1; }
+
+  /* Textarea */
+  .textarea-wrap {
+    position: relative;
+  }
+  textarea {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 300;
+    width: 100%;
+    min-height: 140px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: transparent;
+    color: var(--text);
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.3s ease;
+    line-height: 1.7;
+  }
+  textarea::placeholder {
+    color: var(--accent);
+    font-style: italic;
+  }
+  textarea:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(196, 169, 125, 0.1);
+  }
+  .char-count {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: right;
+    margin-top: 8px;
+  }
+
+  /* Navigation */
+  .nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 32px;
+  }
+  .nav-btn {
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 400;
+    padding: 12px 28px;
+    border: none;
+    border-radius: 28px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    letter-spacing: 0.5px;
+  }
+  .btn-back {
+    background: transparent;
+    color: var(--text-muted);
+    padding: 12px 16px;
+  }
+  .btn-back:hover { color: var(--text); }
+  .btn-next {
+    background: var(--text);
+    color: var(--bg);
+    margin-left: auto;
+  }
+  .btn-next:hover {
+    background: #2a2622;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(58, 54, 50, 0.15);
+  }
+  .btn-next:disabled {
+    background: var(--accent-light);
+    color: var(--text-muted);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  .btn-submit {
+    background: var(--gold);
+    color: #fff;
+    width: 100%;
+    padding: 16px;
+    font-size: 16px;
+    margin-top: 32px;
+  }
+  .btn-submit:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(196, 169, 125, 0.25);
+  }
+
+  /* Confirmation */
+  .confirmation {
+    display: none;
+    text-align: center;
+    animation: fadeUp 0.8s ease;
+    padding: 20px 0;
+  }
+  .confirmation.active { display: block; }
+  .confirm-icon {
+    font-size: 48px;
+    margin-bottom: 24px;
+    display: block;
+    animation: float 4s ease-in-out infinite;
+  }
+  .confirmation h2 {
+    font-size: 26px;
+    font-weight: 400;
+    margin-bottom: 16px;
+    letter-spacing: 1px;
+  }
+  .confirmation p {
+    font-size: 16px;
+    font-weight: 300;
+    color: var(--text-muted);
+    line-height: 1.8;
+    max-width: 360px;
+    margin: 0 auto;
+  }
+  .code-box {
+    margin: 32px auto;
+    padding: 24px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    max-width: 300px;
+  }
+  .code-label {
+    font-family: var(--font-sans);
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+  .code-display {
+    font-size: 48px;
+    letter-spacing: 8px;
+    line-height: 1;
+    margin-bottom: 16px;
+  }
+  .code-instruction {
+    font-size: 14px;
+    font-weight: 300;
+    color: var(--gold);
+    font-style: italic;
+    line-height: 1.6;
+  }
+  .confirmation .closing {
+    margin-top: 40px;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    margin-top: 56px;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+  }
+
+  /* Mobile */
+  @media (max-width: 540px) {
+    .container { padding: 32px 16px 60px; }
+    .form-card { padding: 32px 20px; }
+    .header h1 { font-size: 26px; }
+    .step-question { font-size: 19px; }
+  }
+
+  /* Korean font adjustments */
+  html[lang="ko"] .header h1,
+  html[lang="ko"] .step-question,
+  html[lang="ko"] .choice,
+  html[lang="ko"] textarea,
+  html[lang="ko"] .confirmation h2 {
+    font-family: 'Noto Serif KR', var(--font-serif);
+  }
+</style>
+</head>
+<body>
+
+<!-- Stars background -->
+<div class="stars" id="stars"></div>
+
+<div class="container">
+
+  <!-- Language Toggle -->
+  <div class="lang-toggle">
+    <button class="lang-btn active" data-lang="en" onclick="setLang('en')">English</button>
+    <button class="lang-btn" data-lang="ko" onclick="setLang('ko')">한국어</button>
+  </div>
+
+  <!-- Header -->
+  <div class="header">
+    <span class="moon">🍒</span>
+    <h1 data-en="A Moment of Reflection" data-ko="잠시 멈추어,&#10;나를 돌아보는 시간">A Moment of Reflection</h1>
+    <p data-en="Share what's on your heart. Your reading will be prepared with care and intention." data-ko="마음속에 있는 이야기를 나눠주세요.&#10;정성을 담아 리딩을 준비할게요.">Share what's on your heart.&#10;Your reading will be prepared with care and intention.</p>
+  </div>
+
+  <div class="divider">✦</div>
+
+  <!-- Form Card -->
+  <div class="form-card" id="formCard">
+    <form id="tarotForm">
+
+      <!-- Progress -->
+      <div class="progress">
+        <div class="progress-dot active" data-step="0"></div>
+        <div class="progress-dot" data-step="1"></div>
+        <div class="progress-dot" data-step="2"></div>
+        <div class="progress-dot" data-step="3"></div>
+      </div>
+
+      <!-- Step 1: Area of focus -->
+      <div class="step active" data-step="0">
+        <div class="step-label" data-en="Step 1 of 4" data-ko="4단계 중 1단계">Step 1 of 4</div>
+        <div class="step-question" data-en="What area would you like guidance in?" data-ko="어떤 안내를 받고 싶으신가요?">What area would you like guidance in?</div>
+        <div class="choices" data-field="area">
+          <button type="button" class="choice" data-value="love"><span data-en="Love & Relationships" data-ko="사랑과 관계">Love & Relationships</span></button>
+          <button type="button" class="choice" data-value="career"><span data-en="Career & Purpose" data-ko="직업과 목적">Career & Purpose</span></button>
+          <button type="button" class="choice" data-value="personal"><span data-en="Personal Growth" data-ko="자기 성장">Personal Growth</span></button>
+          <button type="button" class="choice" data-value="health"><span data-en="Health & Wellbeing" data-ko="건강과 웰빙">Health & Wellbeing</span></button>
+          <button type="button" class="choice" data-value="family"><span data-en="Family & Home" data-ko="가족과 가정">Family & Home</span></button>
+          <button type="button" class="choice" data-value="general"><span data-en="General Guidance" data-ko="전반적인 조언">General Guidance</span></button>
+        </div>
+        <div class="nav">
+          <span></span>
+          <button type="button" class="nav-btn btn-next" disabled onclick="nextStep()">
+            <span data-en="Continue" data-ko="다음">Continue</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2: Current feeling -->
+      <div class="step" data-step="1">
+        <div class="step-label" data-en="Step 2 of 4" data-ko="4단계 중 2단계">Step 2 of 4</div>
+        <div class="step-question" data-en="How are you feeling right now?" data-ko="지금 기분이 어떠세요?">How are you feeling right now?</div>
+        <div class="choices" data-field="feeling">
+          <button type="button" class="choice" data-value="anxious"><span data-en="Anxious or Uncertain" data-ko="불안하거나 확신이 없어요">Anxious or Uncertain</span></button>
+          <button type="button" class="choice" data-value="curious"><span data-en="Curious & Open" data-ko="궁금하고 열린 마음이에요">Curious & Open</span></button>
+          <button type="button" class="choice" data-value="stuck"><span data-en="Feeling Stuck" data-ko="막혀있는 느낌이에요">Feeling Stuck</span></button>
+          <button type="button" class="choice" data-value="hopeful"><span data-en="Hopeful but Seeking Clarity" data-ko="희망적이지만 명확함이 필요해요">Hopeful but Seeking Clarity</span></button>
+          <button type="button" class="choice" data-value="overwhelmed"><span data-en="Overwhelmed" data-ko="압도당하는 느낌이에요">Overwhelmed</span></button>
+        </div>
+        <div class="nav">
+          <button type="button" class="nav-btn btn-back" onclick="prevStep()">
+            <span data-en="Back" data-ko="이전">Back</span>
+          </button>
+          <button type="button" class="nav-btn btn-next" disabled onclick="nextStep()">
+            <span data-en="Continue" data-ko="다음">Continue</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 3: Your question -->
+      <div class="step" data-step="2">
+        <div class="step-label" data-en="Step 3 of 4" data-ko="4단계 중 3단계">Step 3 of 4</div>
+        <div class="step-question" data-en="What question is on your mind?" data-ko="어떤 질문이 마음에 있으신가요?">What question is on your mind?</div>
+        <div class="textarea-wrap">
+          <textarea
+            id="question"
+            maxlength="1000"
+            data-placeholder-en="Share as much or as little as you'd like. This is a safe space..."
+            data-placeholder-ko="하고 싶은 만큼 자유롭게 나눠주세요. 여기는 안전한 공간이에요..."
+            placeholder="Share as much or as little as you'd like. This is a safe space..."
+            oninput="updateCharCount(this)"
+          ></textarea>
+          <div class="char-count"><span id="charCount">0</span> / 1000</div>
+        </div>
+        <div class="nav">
+          <button type="button" class="nav-btn btn-back" onclick="prevStep()">
+            <span data-en="Back" data-ko="이전">Back</span>
+          </button>
+          <button type="button" class="nav-btn btn-next" onclick="nextStep()">
+            <span data-en="Continue" data-ko="다음">Continue</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 4: Anything else -->
+      <div class="step" data-step="3">
+        <div class="step-label" data-en="Step 4 of 4" data-ko="4단계 중 4단계">Step 4 of 4</div>
+        <div class="step-question" data-en="Anything else you'd like me to know?" data-ko="추가로 알려주고 싶은 것이 있으신가요?">Anything else you'd like me to know?</div>
+        <div class="textarea-wrap">
+          <textarea
+            id="additional"
+            maxlength="1000"
+            data-placeholder-en="Optional — context, background, or just how your day has been..."
+            data-placeholder-ko="선택사항 — 맥락, 배경, 또는 오늘 하루가 어땠는지..."
+            placeholder="Optional — context, background, or just how your day has been..."
+            oninput="updateCharCount2(this)"
+          ></textarea>
+          <div class="char-count"><span id="charCount2">0</span> / 1000</div>
+        </div>
+        <div class="nav">
+          <button type="button" class="nav-btn btn-back" onclick="prevStep()">
+            <span data-en="Back" data-ko="이전">Back</span>
+          </button>
+          <span></span>
+        </div>
+        <button type="button" class="nav-btn btn-submit" onclick="submitForm()">
+          <span data-en="Send to Cherry 🍒" data-ko="체리에게 보내기 🍒">Send to Cherry 🍒</span>
+        </button>
+      </div>
+
+    </form>
+
+    <!-- Confirmation -->
+    <div class="confirmation" id="confirmation">
+      <span class="confirm-icon">✧</span>
+      <h2 data-en="Received with Gratitude" data-ko="감사히 받았습니다">Received with Gratitude</h2>
+      <p data-en="Your words have been received. I'll take time to sit with your energy and prepare your reading with intention. Thank you for trusting this space." data-ko="당신의 이야기를 받았어요. 당신의 에너지와 함께 시간을 갖고, 정성을 담아 리딩을 준비할게요. 이 공간을 믿어주셔서 감사합니다.">Your words have been received. I'll take time to sit with your energy and prepare your reading with intention. Thank you for trusting this space.</p>
+      <div class="code-box">
+        <p class="code-label" data-en="Your unique code" data-ko="나만의 고유 코드">Your unique code</p>
+        <div class="code-display" id="emojiCode"></div>
+        <p class="code-instruction" data-en="Please save this code to access your reading later!" data-ko="리딩을 확인할 때 필요하니 꼭 저장해주세요!">Please save this code to access your reading later!</p>
+      </div>
+      <p class="closing" data-en="The cards will speak when the time is right." data-ko="카드는 적절한 때에 말을 할 거예요.">The cards will speak when the time is right.</p>
+    </div>
+  </div>
+
+  <div class="footer" data-en="All submissions are anonymous" data-ko="모든 제출은 익명입니다">All submissions are anonymous</div>
+
+</div>
+
+<script>
+  // State
+  let currentStep = 0;
+  let currentLang = 'en';
+  const formData = { area: null, feeling: null, question: '', additional: '' };
+
+  // Stars
+  (function createStars() {
+    const container = document.getElementById('stars');
+    for (let i = 0; i < 40; i++) {
+      const star = document.createElement('div');
+      star.className = 'star';
+      star.style.left = Math.random() * 100 + '%';
+      star.style.top = Math.random() * 100 + '%';
+      star.style.setProperty('--dur', (3 + Math.random() * 4) + 's');
+      star.style.setProperty('--delay', Math.random() * 5 + 's');
+      star.style.setProperty('--max-opacity', 0.15 + Math.random() * 0.2);
+      container.appendChild(star);
+    }
+  })();
+
+  // Language
+  function setLang(lang) {
+    currentLang = lang;
+    document.documentElement.lang = lang;
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.lang === lang);
+    });
+    document.querySelectorAll('[data-' + lang + ']').forEach(el => {
+      el.textContent = el.getAttribute('data-' + lang);
+    });
+    document.querySelectorAll('[data-placeholder-' + lang + ']').forEach(el => {
+      el.placeholder = el.getAttribute('data-placeholder-' + lang);
+    });
+  }
+
+  // Choice selection
+  document.querySelectorAll('.choice').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const field = this.closest('.choices').dataset.field;
+      this.closest('.choices').querySelectorAll('.choice').forEach(c => c.classList.remove('selected'));
+      this.classList.add('selected');
+      formData[field] = this.dataset.value;
+      const nextBtn = this.closest('.step').querySelector('.btn-next');
+      if (nextBtn) nextBtn.disabled = false;
+    });
+  });
+
+  // Navigation
+  function nextStep() {
+    const steps = document.querySelectorAll('.step');
+    steps[currentStep].classList.remove('active');
+    currentStep++;
+    steps[currentStep].classList.add('active');
+    updateProgress();
+  }
+
+  function prevStep() {
+    const steps = document.querySelectorAll('.step');
+    steps[currentStep].classList.remove('active');
+    currentStep--;
+    steps[currentStep].classList.add('active');
+    updateProgress();
+  }
+
+  function updateProgress() {
+    document.querySelectorAll('.progress-dot').forEach(dot => {
+      const step = parseInt(dot.dataset.step);
+      dot.classList.remove('active', 'done');
+      if (step === currentStep) dot.classList.add('active');
+      else if (step < currentStep) dot.classList.add('done');
+    });
+  }
+
+  // Char counts
+  function updateCharCount(el) {
+    document.getElementById('charCount').textContent = el.value.length;
+    formData.question = el.value;
+  }
+  function updateCharCount2(el) {
+    document.getElementById('charCount2').textContent = el.value.length;
+    formData.additional = el.value;
+  }
+
+  // ========================================================
+  // GOOGLE SHEETS INTEGRATION
+  // ========================================================
+  // 1. Go to sheets.google.com → create a new spreadsheet
+  // 2. In Row 1 add headers: Timestamp | Language | Area | Feeling | Question | Additional
+  // 3. Go to Extensions → Apps Script
+  // 4. Delete everything and paste the code from google-apps-script.js
+  // 5. Click Deploy → New deployment → Web app → "Anyone" can access → Deploy
+  // 6. Copy the URL and paste it below:
+  const GOOGLE_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbzDY7WhoNw1vGk1avr-PedEiTpT1rBVBkJyG-ltTxlbrc0oOE8XkNYtCe0cUjvMEv2zrQ/exec';
+  // ========================================================
+
+  function generateEmojiCode() {
+    var emojis = [
+      '🌟','🌙','🦄','🌸','🍒','🦋','🌈','🍀','🐚','💎',
+      '🪷','🌻','🐱','🌊','🔮','🕊️','🍄','🌿','⭐','🪻',
+      '🐝','🌺','🧿','🪽','✨','🫧','🌴','🍃','💜','🦢',
+      '🌵','🎀','🐬','🪸','🍂','🌝','🦊','🫐','🪺','🐾'
+    ];
+    var code = [];
+    var used = [];
+    for (var i = 0; i < 4; i++) {
+      var idx;
+      do { idx = Math.floor(Math.random() * emojis.length); } while (used.indexOf(idx) !== -1);
+      used.push(idx);
+      code.push(emojis[idx]);
+    }
+    return code.join('');
+  }
+
+  function submitForm() {
+    formData.question = document.getElementById('question').value;
+    formData.additional = document.getElementById('additional').value;
+    formData.language = currentLang;
+    formData.timestamp = new Date().toISOString();
+    formData.code = generateEmojiCode();
+
+    var submitBtn = document.querySelector('.btn-submit');
+    var originalText = submitBtn.querySelector('span').textContent;
+    submitBtn.disabled = true;
+    submitBtn.querySelector('span').textContent = currentLang === 'ko' ? '보내는 중...' : 'Sending...';
+
+    if (GOOGLE_SHEETS_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
+      console.log('Form submission (no Google Sheets URL set):', formData);
+      showConfirmation();
+      return;
+    }
+
+    var iframe = document.createElement('iframe');
+    iframe.name = 'hidden-iframe';
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = GOOGLE_SHEETS_URL;
+    form.target = 'hidden-iframe';
+
+    var fields = {
+      timestamp: formData.timestamp,
+      language: formData.language,
+      area: formData.area || '',
+      feeling: formData.feeling || '',
+      question: formData.question || '',
+      additional: formData.additional || '',
+      code: formData.code
+    };
+
+    for (var key in fields) {
+      var input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = key;
+      input.value = fields[key];
+      form.appendChild(input);
+    }
+
+    document.body.appendChild(form);
+    form.submit();
+
+    setTimeout(function() {
+      document.body.removeChild(form);
+      document.body.removeChild(iframe);
+    }, 2000);
+
+    showConfirmation();
+  }
+
+  function showConfirmation() {
+    document.getElementById('emojiCode').textContent = formData.code;
+    document.getElementById('tarotForm').style.display = 'none';
+    var conf = document.getElementById('confirmation');
+    conf.classList.add('active');
+    // re-apply language to new elements
+    setLang(currentLang);
+  }
+</script>
+</body>
+</html>
