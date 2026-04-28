@@ -373,6 +373,36 @@
     max-width: 360px;
     margin: 0 auto;
   }
+  .code-box {
+    margin: 32px auto;
+    padding: 24px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    max-width: 300px;
+  }
+  .code-label {
+    font-family: var(--font-sans);
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+  .code-display {
+    font-size: 48px;
+    letter-spacing: 8px;
+    line-height: 1;
+    margin-bottom: 16px;
+  }
+  .code-instruction {
+    font-size: 14px;
+    font-weight: 300;
+    color: var(--gold);
+    font-style: italic;
+    line-height: 1.6;
+  }
   .confirmation .closing {
     margin-top: 40px;
     font-size: 14px;
@@ -541,6 +571,11 @@
       <span class="confirm-icon">✧</span>
       <h2 data-en="Received with Gratitude" data-ko="감사히 받았습니다">Received with Gratitude</h2>
       <p data-en="Your words have been received. I'll take time to sit with your energy and prepare your reading with intention. Thank you for trusting this space." data-ko="당신의 이야기를 받았어요. 당신의 에너지와 함께 시간을 갖고, 정성을 담아 리딩을 준비할게요. 이 공간을 믿어주셔서 감사합니다.">Your words have been received. I'll take time to sit with your energy and prepare your reading with intention. Thank you for trusting this space.</p>
+      <div class="code-box">
+        <p class="code-label" data-en="Your unique code" data-ko="나만의 고유 코드">Your unique code</p>
+        <div class="code-display" id="emojiCode"></div>
+        <p class="code-instruction" data-en="Please save this code to access your reading later!" data-ko="리딩을 확인할 때 필요하니 꼭 저장해주세요!">Please save this code to access your reading later!</p>
+      </div>
       <p class="closing" data-en="The cards will speak when the time is right." data-ko="카드는 적절한 때에 말을 할 거예요.">The cards will speak when the time is right.</p>
     </div>
   </div>
@@ -642,47 +677,95 @@
   // 4. Delete everything and paste the code from google-apps-script.js
   // 5. Click Deploy → New deployment → Web app → "Anyone" can access → Deploy
   // 6. Copy the URL and paste it below:
-  const GOOGLE_SHEETS_URL = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
+  const GOOGLE_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbzjCiYnwKPUfHRFXYZls6w-9_7fmNrExYcBhJEXcZ_OHWGWD6uVNL8_ICUtHucrFYRC4g/exec';
   // ========================================================
+
+  function generateEmojiCode() {
+    var emojis = [
+      '🌟','🌙','🦄','🌸','🍒','🦋','🌈','🍀','🐚','💎',
+      '🪷','🌻','🐱','🌊','🔮','🕊️','🍄','🌿','⭐','🪻',
+      '🐝','🌺','🧿','🪽','✨','🫧','🌴','🍃','💜','🦢',
+      '🌵','🎀','🐬','🪸','🍂','🌝','🦊','🫐','🪺','🐾'
+    ];
+    var code = [];
+    var used = [];
+    for (var i = 0; i < 4; i++) {
+      var idx;
+      do { idx = Math.floor(Math.random() * emojis.length); } while (used.indexOf(idx) !== -1);
+      used.push(idx);
+      code.push(emojis[idx]);
+    }
+    return code.join('');
+  }
 
   function submitForm() {
     formData.question = document.getElementById('question').value;
     formData.additional = document.getElementById('additional').value;
     formData.language = currentLang;
     formData.timestamp = new Date().toISOString();
+    formData.code = generateEmojiCode();
 
     var submitBtn = document.querySelector('.btn-submit');
     var originalText = submitBtn.querySelector('span').textContent;
     submitBtn.disabled = true;
     submitBtn.querySelector('span').textContent = currentLang === 'ko' ? '보내는 중...' : 'Sending...';
 
-    if (GOOGLE_SHEETS_URL === 'https://script.google.com/macros/s/AKfycbxaVzazFXHR8hjdfk-Pg8VD1J3qyyukK2EBTePbQeTDbiAZ0t3L8fIXMOmHu828OzTMFQ/exec') {
+    if (GOOGLE_SHEETS_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
       console.log('Form submission (no Google Sheets URL set):', formData);
       showConfirmation();
       return;
     }
 
-    fetch(GOOGLE_SHEETS_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formData)
-    })
-    .then(function() {
-      showConfirmation();
-    })
-    .catch(function(err) {
-      console.error('Submit error:', err);
-      showConfirmation();
-    });
+    var iframe = document.createElement('iframe');
+    iframe.name = 'hidden-iframe';
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = GOOGLE_SHEETS_URL;
+    form.target = 'hidden-iframe';
+
+    var fields = {
+      timestamp: formData.timestamp,
+      language: formData.language,
+      area: formData.area || '',
+      feeling: formData.feeling || '',
+      question: formData.question || '',
+      additional: formData.additional || '',
+      code: formData.code
+    };
+
+    for (var key in fields) {
+      var input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = key;
+      input.value = fields[key];
+      form.appendChild(input);
+    }
+
+    document.body.appendChild(form);
+    form.submit();
+
+    setTimeout(function() {
+      document.body.removeChild(form);
+      document.body.removeChild(iframe);
+    }, 2000);
+
+    showConfirmation();
   }
 
   function showConfirmation() {
+    document.getElementById('emojiCode').textContent = formData.code;
     document.getElementById('tarotForm').style.display = 'none';
-    document.getElementById('confirmation').classList.add('active');
+    var conf = document.getElementById('confirmation');
+    conf.classList.add('active');
+    // re-apply language to new elements
+    setLang(currentLang);
   }
 </script>
 </body>
 </html>
+
 
 
